@@ -20,7 +20,7 @@ services:
   plc-server:
     container_name: "plc-server"
     hostname: "plc-server"
-    image: node-server:latest
+    image: plc-server:latest
     pull_policy: build
     restart: on-failure:5
     healthcheck:
@@ -34,9 +34,9 @@ services:
         NODESET_MODEL: "PLC.NodeSet2.xml"
       additional_contexts:
         container_context: ${REF}opcua/server/nodejs-node-opcua/latest
-        nodeset_context: ../meta/demo-nodeset2
-        companion_context: ../meta/companion-specifications
-        configuration_context: ../meta/server-configuration
+        nodeset_context: ${META}demo-nodeset2
+        companion_context: ${META}companion-specifications
+        configuration_context: ${META}server-configuration
     networks:
       - it-net
       - plc-net
@@ -82,7 +82,7 @@ services:
   levelsensor-server:
     container_name: "levelsensor-server"
     hostname: "levelsensor-server"
-    image: node-server:latest
+    image: levelsensor-server:latest
     pull_policy: build
     restart: on-failure:5
     healthcheck:
@@ -96,9 +96,9 @@ services:
         NODESET_MODEL: "Tank.NodeSet2.xml"
       additional_contexts:
         container_context: ${REF}opcua/server/nodejs-node-opcua/latest
-        nodeset_context: ../meta/demo-nodeset2
-        companion_context: ../meta/companion-specifications
-        configuration_context: ../meta/server-configuration
+        nodeset_context: ${META}demo-nodeset2
+        companion_context: ${META}companion-specifications
+        configuration_context: ${META}server-configuration
     networks:
       - levelsensor-net
       - ot-net
@@ -120,7 +120,7 @@ services:
       - levelsensor-server
   valve-server:
     container_name: "valve-server"
-    image: node-server:latest
+    image: valve-server:latest
     pull_policy: build
     restart: on-failure:5
     healthcheck:
@@ -134,9 +134,9 @@ services:
         NODESET_MODEL: "Valve.NodeSet2.xml"
       additional_contexts:
         container_context: ${REF}opcua/server/nodejs-node-opcua/latest
-        nodeset_context: ../meta/demo-nodeset2
-        companion_context: ../meta/companion-specifications
-        configuration_context: ../meta/server-configuration
+        nodeset_context: ${META}demo-nodeset2
+        companion_context: ${META}companion-specifications
+        configuration_context: ${META}server-configuration
     networks:
       - ot-net
 networks:
