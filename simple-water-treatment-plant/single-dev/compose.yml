@@ -3,10 +3,14 @@ services:
     container_name: "headunit-dashboard"
     hostname: "headunit-dashboard"
     image: dashboard:latest
+    pull_policy: build
+    restart: on-failure:5
     environment:
       - SERVER_URI=opc.tcp://plc-server:4840/KRITIS3M/
     build:
-      context: ${IMAGE_REPO_URL}#main:opcua/dashboard/python-opcua-asyncio/latest
+      context: ${REF}opcua/dashboard/python-opcua-asyncio/latest
+      additional_contexts:
+        container_context: ${REF}opcua/dashboard/python-opcua-asyncio/latest
     ports:
       - "8050:8050"
     networks:
@@ -17,12 +21,19 @@ services:
     container_name: "plc-server"
     hostname: "plc-server"
     image: node-server:latest
+    pull_policy: build
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4840 || exit 1"]
+      interval: 1m
+      timeout: 5s
+      retries: 3
     build:
-      context: ${IMAGE_REPO_URL}#main:opcua/server/nodejs-node-opcua/latest
+      context: ${REF}opcua/server/nodejs-node-opcua/latest
       args:
         NODESET_MODEL: "PLC.NodeSet2.xml"
       additional_contexts:
-        container_context: ${IMAGE_REPO_URL}#main:opcua/server/nodejs-node-opcua/latest
+        container_context: ${REF}opcua/server/nodejs-node-opcua/latest
         nodeset_context: ../meta/demo-nodeset2
         companion_context: ../meta/companion-specifications
         configuration_context: ../meta/server-configuration
@@ -33,12 +44,16 @@ services:
     container_name: "plc-historian"
     hostname: "plc-historian"
     image: historian:latest
+    pull_policy: build
+    restart: on-failure:5
     environment:
       - SERVER_URI=opc.tcp://plc-server:4840/KRITIS3M/
     volumes:
       - /tmp/docker/database:/database
     build:
-      context: ${IMAGE_REPO_URL}#main:opcua/historian/python-opcua-asyncio/latest
+      context: ${REF}opcua/historian/python-opcua-asyncio/latest
+      additional_contexts:
+        container_context: ${REF}opcua/historian/python-opcua-asyncio/latest
     networks:
       - plc-net
     depends_on:
@@ -47,12 +62,16 @@ services:
     container_name: "plc-logic"
     hostname: "plc-logic"
     image: plc-logic:latest
+    pull_policy: build
+    restart: on-failure:5
     environment:
       - PS_URI=opc.tcp://plc-server:4840
       - LSS_URI=opc.tcp://levelsensor-server:4840
       - VS_URI=opc.tcp://valve-server:4840
     build:
-      context: ${IMAGE_REPO_URL}#main:opcua/plc-logic/python-opcua-asyncio/latest
+      context: ${REF}opcua/plc-logic/python-opcua-asyncio/latest
+      additional_contexts:
+        container_context: ${REF}opcua/plc-logic/python-opcua-asyncio/latest
     networks:
       - plc-net
       - ot-net
@@ -64,12 +83,19 @@ services:
     container_name: "levelsensor-server"
     hostname: "levelsensor-server"
     image: node-server:latest
+    pull_policy: build
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4840 || exit 1"]
+      interval: 1m
+      timeout: 5s
+      retries: 3
     build:
-      context: ${IMAGE_REPO_URL}#main:opcua/server/nodejs-node-opcua/latest
+      context: ${REF}opcua/server/nodejs-node-opcua/latest
       args:
         NODESET_MODEL: "Tank.NodeSet2.xml"
       additional_contexts:
-        container_context: ${IMAGE_REPO_URL}#main:opcua/server/nodejs-node-opcua/latest
+        container_context: ${REF}opcua/server/nodejs-node-opcua/latest
         nodeset_context: ../meta/demo-nodeset2
         companion_context: ../meta/companion-specifications
         configuration_context: ../meta/server-configuration
@@ -80,10 +106,14 @@ services:
     container_name: "water-tank-simulation"
     hostname: "water-tank-simulation"
     image: water-tank-simulation:latest
+    pull_policy: build
+    restart: on-failure:5
     environment:
       - SERVER_URI=opc.tcp://levelsensor-server:4840/KRITIS3M/
     build:
-      context: ${IMAGE_REPO_URL}#main:opcua/water-tank-simulation/python-opcua-asyncio/latest
+      context: ${REF}opcua/water-tank-simulation/python-opcua-asyncio/latest
+      additional_contexts:
+        container_context: ${REF}opcua/water-tank-simulation/python-opcua-asyncio/latest
     networks:
       - levelsensor-net
     depends_on:
@@ -91,12 +121,19 @@ services:
   valve-server:
     container_name: "valve-server"
     image: node-server:latest
+    pull_policy: build
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4840 || exit 1"]
+      interval: 1m
+      timeout: 5s
+      retries: 3
     build:
-      context: ${IMAGE_REPO_URL}#main:opcua/server/nodejs-node-opcua/latest
+      context: ${REF}opcua/server/nodejs-node-opcua/latest
       args:
         NODESET_MODEL: "Valve.NodeSet2.xml"
       additional_contexts:
-        container_context: ${IMAGE_REPO_URL}#main:opcua/server/nodejs-node-opcua/latest
+        container_context: ${REF}opcua/server/nodejs-node-opcua/latest
         nodeset_context: ../meta/demo-nodeset2
         companion_context: ../meta/companion-specifications
         configuration_context: ../meta/server-configuration
