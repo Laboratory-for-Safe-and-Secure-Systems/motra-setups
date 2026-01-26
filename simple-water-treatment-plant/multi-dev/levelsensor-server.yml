@@ -1,29 +1,40 @@
 services:
   levelsensor-server:
     container_name: "levelsensor-server"
+    restart: on-failure:5
     hostname: "levelsensor-server"
     image: node-server:latest
+    pull_policy: build
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4840 || exit 1"]
+      interval: 1m
+      timeout: 5s
+      retries: 3
     build:
-      context: ${IMAGE_REPO_URL}#main:opcua/server/nodejs-node-opcua/latest
+      context: ${REF}opcua/server/nodejs-node-opcua/latest
       args:
         NODESET_MODEL: "Tank.NodeSet2.xml"
       additional_contexts:
-        container_context: ${IMAGE_REPO_URL}#main:opcua/server/nodejs-node-opcua/latest
-        nodeset_context: ../meta/demo-nodeset2
-        companion_context: ../meta/companion-specifications
-        configuration_context: ../meta/server-configuration
+        container_context: ${REF}opcua/server/nodejs-node-opcua/latest
+        nodeset_context: ${META}/demo-nodeset2
+        companion_context: ${META}/companion-specifications
+        configuration_context: ${META}/server-configuration
     ports:
       - "4840:4840"
     networks:
       - levelsensor-net
   water-tank-simulation:
     container_name: "water-tank-simulation"
+    restart: on-failure:5
     hostname: "water-tank-simulation"
     image: water-tank-simulation:latest
+    pull_policy: build
     environment:
       - SERVER_URI=opc.tcp://levelsensor-server:4840/KRITIS3M/
     build:
-      context: ${IMAGE_REPO_URL}#main:opcua/water-tank-simulation/python-opcua-asyncio/latest
+      context: ${REF}opcua/water-tank-simulation/python-opcua-asyncio/latest
+      additional_contexts:
+        container_context: ${REF}opcua/water-tank-simulation/python-opcua-asyncio/latest
     networks:
       - levelsensor-net
     depends_on:

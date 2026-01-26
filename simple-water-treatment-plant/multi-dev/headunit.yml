@@ -3,9 +3,13 @@ services:
     container_name: "headunit-dashboard"
     hostname: "headunit-dashboard"
     image: dashboard:latest
+    pull_policy: build
+    restart: on-failure:5
     environment:
-      - SERVER_URI=opc.tcp://172.17.0.1:4842/KRITIS3M/
+      - SERVER_URI=opc.tcp://${PLC_IP}:4842/KRITIS3M/
     build:
-      context: ${IMAGE_REPO_URL}#main:opcua/dashboard/python-opcua-asyncio/latest
+      context: ${REF}opcua/dashboard/python-opcua-asyncio/latest
+      additional_contexts:
+        container_context: ${REF}opcua/dashboard/python-opcua-asyncio/latest
     ports:
       - "8050:8050"
