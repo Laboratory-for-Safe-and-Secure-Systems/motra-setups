@@ -1,0 +1,11 @@
+services:
+    fuxa:
+        image: frangoteam/fuxa:latest
+        network_mode: "host"
+        volumes:
+            - ./fuxa_appdata:/usr/src/app/FUXA/server/_appdata
+            - ./fuxa_db:/usr/src/app/FUXA/server/_db
+            - ./fuxa_logs:/usr/src/app/FUXA/server/_logs
+        environment:
+            - TZ=Europe/Berlin
+        restart: always
