@@ -1,0 +1,71 @@
+services:
+  dmz_redis:
+    image: redis:alpine
+    ports: ["6379:6379"]
+  it_server:
+    image: it_server
+    pull_policy: build
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4840 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    build: 
+      context: "."
+      dockerfile_inline: |
+        FROM python:3.14-slim
+        WORKDIR /app
+        RUN apt update && apt install git ncat -y
+        COPY requirements.txt .
+        RUN pip install --no-cache-dir -r requirements.txt
+        COPY . .
+        CMD ["python", "it_server.py"]
+  reader:
+    image: ot_reader
+    pull_policy: build
+    build:
+      context: "."
+      dockerfile_inline: |
+        FROM python:3.14-slim
+        WORKDIR /app
+        RUN apt update && apt install git ncat  -y
+        COPY requirements.txt .
+        RUN pip install --no-cache-dir -r requirements.txt
+        COPY . .
+        CMD ["python", "reader.py"]
+  forwarder:
+    image: ot_forwarder
+    pull_policy: build
+    depends_on:
+      customplc-server:
+        condition: service_healthy
+    build:
+      context: "."
+      dockerfile_inline: |
+        FROM python:3.14-slim
+        WORKDIR /app
+        RUN apt update && apt install git ncat -y
+        COPY requirements.txt .
+        RUN pip install --no-cache-dir -r requirements.txt
+        COPY . .
+        CMD ["python", "forwarder.py"]
+  customplc-server:
+    container_name: "customplc-server"
+    hostname: "customplc-server"
+    image: customplc-server:latest
+    pull_policy: build
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4840 || exit 1"]
+      interval: 6s
+      timeout: 5s
+      retries: 3
+    build:
+      context: ${REF}opcua/server/nodejs-node-opcua/latest
+      args:
+        NODESET_MODEL: "PLC.NodeSet2.xml"
+      additional_contexts:
+        container_context: ${REF}opcua/server/nodejs-node-opcua/latest
+        nodeset_context: ${REF}meta/demo-nodeset2
+        companion_context: ${REF}meta/companion-specifications
+        configuration_context: ${REF}meta/server-configuration

@@ -1,0 +1,231 @@
+services:
+  dmz_redis:
+    image: redis:alpine
+    container_name: "dmz_redis"
+    hostname: "dmz_redis"
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - dmz-net
+  fuxa:
+    image: frangoteam/fuxa:latest
+    container_name: "fuxa-dash"
+    hostname: "fuxa-dash"
+    depends_on:
+      it_server:
+        condition: service_healthy
+    ports:
+      - "1881:1881"
+    networks:
+      - it-net
+    volumes:
+        - ../../fuxa-demo/fuxa_appdata:/usr/src/app/FUXA/server/_appdata
+        - ../../fuxa-demo/fuxa_db:/usr/src/app/FUXA/server/_db
+        - ../../fuxa-demo/fuxa_logs:/usr/src/app/FUXA/server/_logs
+    environment:
+        - TZ=Europe/Berlin
+    restart: always
+  it_server:
+    image: it_server
+    pull_policy: build
+    depends_on:
+      dmz_redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 0.0.0.0 4840 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - dmz-net
+      - it-net
+    build: 
+      context: "../../dmz-demo"
+      dockerfile_inline: |
+        FROM python:3.14-slim
+        WORKDIR /app
+        RUN apt update && apt install git ncat -y
+        COPY src/requirements.txt .
+        RUN pip install --no-cache-dir -r requirements.txt
+        COPY src/ /app/
+        ENTRYPOINT ["python3"]
+        CMD ["-m" , "cli.main" , "start-it-server"]
+  forwarder:
+    image: ot_forwarder
+    pull_policy: build
+    depends_on:
+      plc-server:
+        condition: service_healthy
+    networks:
+      - dmz-net
+      - plc-net
+    build:
+      context: "../../dmz-demo"
+      dockerfile_inline: |
+        FROM python:3.14-slim
+        WORKDIR /app
+        RUN apt update && apt install git -y
+        COPY src/requirements.txt .
+        RUN pip install --no-cache-dir -r requirements.txt
+        COPY src/ /app/
+        ENTRYPOINT ["python3"]
+        CMD ["-m" , "cli.main" , "start-forwarder"]
+  headunit-dashboard:
+    container_name: "headunit-dashboard"
+    hostname: "headunit-dashboard"
+    image: dashboard:latest
+    pull_policy: build
+    restart: on-failure:5
+    environment:
+      - SERVER_URI=opc.tcp://plc-server:4840/KRITIS3M/
+    build:
+      context: ${REF}opcua/dashboard/python-opcua-asyncio/latest
+      additional_contexts:
+        container_context: ${REF}opcua/dashboard/python-opcua-asyncio/latest
+    ports:
+      - "8050:8050"
+    networks:
+      - scada-net
+    depends_on:
+      - plc-server
+  plc-server:
+    container_name: "plc-server"
+    hostname: "plc-server"
+    image: plc-server:latest
+    pull_policy: build
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4840 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    build:
+      context: ${REF}opcua/server/nodejs-node-opcua/latest
+      args:
+        NODESET_MODEL: "PLC.NodeSet2.xml"
+      additional_contexts:
+        container_context: ${REF}opcua/server/nodejs-node-opcua/latest
+        nodeset_context: ${REF}/meta/demo-nodeset2
+        companion_context: ${REF}/meta/companion-specifications
+        configuration_context: ${REF}/meta/server-configuration
+    networks:
+      - scada-net
+      - plc-net
+  plc-historian:
+    container_name: "plc-historian"
+    hostname: "plc-historian"
+    image: historian:latest
+    pull_policy: build
+    restart: on-failure:5
+    environment:
+      - SERVER_URI=opc.tcp://plc-server:4840/KRITIS3M/
+    volumes:
+      - /tmp/docker/database:/database
+    build:
+      context: ${REF}opcua/historian/python-opcua-asyncio/latest
+      additional_contexts:
+        container_context: ${REF}opcua/historian/python-opcua-asyncio/latest
+    networks:
+      - plc-net
+    depends_on:
+      - plc-server
+  plc-logic:
+    container_name: "plc-logic"
+    hostname: "plc-logic"
+    image: plc-logic:latest
+    pull_policy: build
+    restart: on-failure:5
+    environment:
+      - PS_URI=opc.tcp://plc-server:4840
+      - LSS_URI=opc.tcp://levelsensor-server:4840
+      - VS_URI=opc.tcp://valve-server:4840
+    build:
+      context: ${REF}opcua/plc-logic/python-opcua-asyncio/latest
+      additional_contexts:
+        container_context: ${REF}opcua/plc-logic/python-opcua-asyncio/latest
+    networks:
+      - plc-net
+      - ot-net
+    depends_on:
+      - plc-server
+      - levelsensor-server
+      - valve-server
+  levelsensor-server:
+    container_name: "levelsensor-server"
+    hostname: "levelsensor-server"
+    image: levelsensor-server:latest
+    pull_policy: build
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4840 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    build:
+      context: ${REF}opcua/server/nodejs-node-opcua/latest
+      args:
+        NODESET_MODEL: "Tank.NodeSet2.xml"
+      additional_contexts:
+        container_context: ${REF}opcua/server/nodejs-node-opcua/latest
+        nodeset_context: ${REF}/meta/demo-nodeset2
+        companion_context: ${REF}/meta/companion-specifications
+        configuration_context: ${REF}/meta/server-configuration
+    networks:
+      - levelsensor-net
+      - ot-net
+  water-tank-simulation:
+    container_name: "water-tank-simulation"
+    hostname: "water-tank-simulation"
+    image: water-tank-simulation:latest
+    pull_policy: build
+    restart: on-failure:5
+    environment:
+      - SERVER_URI=opc.tcp://levelsensor-server:4840/KRITIS3M/
+    build:
+      context: ${REF}opcua/water-tank-simulation/python-opcua-asyncio/latest
+      additional_contexts:
+        container_context: ${REF}opcua/water-tank-simulation/python-opcua-asyncio/latest
+    networks:
+      - levelsensor-net
+    depends_on:
+      - levelsensor-server
+  valve-server:
+    container_name: "valve-server"
+    image: valve-server:latest
+    pull_policy: build
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4840 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    build:
+      context: ${REF}opcua/server/nodejs-node-opcua/latest
+      args:
+        NODESET_MODEL: "Valve.NodeSet2.xml"
+      additional_contexts:
+        container_context: ${REF}opcua/server/nodejs-node-opcua/latest
+        nodeset_context: ${REF}/meta/demo-nodeset2
+        companion_context: ${REF}/meta/companion-specifications
+        configuration_context: ${REF}/meta/server-configuration
+    networks:
+      - ot-net
+networks:
+  scada-net:
+    name: scada-net
+  dmz-net:
+    name: dmz-net
+  it-net:
+    name: it-net
+  plc-net:
+    name: plc-net
+    external: false
+  ot-net:
+    name: ot-net
+  levelsensor-net:
+    name: levelsensor-net
+    external: false

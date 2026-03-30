@@ -1,0 +1,7 @@
+redis
+opcua
+pydantic 
+typer
+tenacity 
+pydantic-settings 
+git+https://github.com/FreeOpcUa/opcua-asyncio.git#egg=asyncua
