@@ -1,0 +1,20 @@
+services:
+  headunit-dashboard:
+    container_name: "headunit-dashboard"
+    hostname: "headunit-dashboard"
+    image: dashboard:latest
+    pull_policy: build
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 0.0.0.0 8050 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    environment:
+      - SERVER_URI=opc.tcp://${PLC_IP}:4842/KRITIS3M/
+    build:
+      context: ${REF}opcua/dashboard/python-opcua-asyncio/latest
+      additional_contexts:
+        container_context: ${REF}opcua/dashboard/python-opcua-asyncio/latest
+    ports:
+      - "8050:8050"

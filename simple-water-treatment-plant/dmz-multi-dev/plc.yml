@@ -6,7 +6,7 @@ services:
     pull_policy: build
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 4840 || exit 1"]
-      interval: 1m
+      interval: 10s
       timeout: 5s
       retries: 3
     restart: on-failure:5
@@ -23,6 +23,7 @@ services:
       - "4842:4840"
     networks:
       - plc-net
+
   plc-historian:
     container_name: "plc-historian"
     hostname: "plc-historian"
@@ -40,7 +41,9 @@ services:
     networks:
       - plc-net
     depends_on:
-      - plc-server
+      plc-server:
+        condition: service_healthy
+
   plc-logic:
     container_name: "plc-logic"
     hostname: "plc-logic"
@@ -58,7 +61,30 @@ services:
     networks:
       - plc-net
     depends_on:
-      - plc-server
+      plc-server:
+        condition: service_healthy
+
+  forwarder:
+    image: ot_forwarder
+    pull_policy: build
+    depends_on:
+      plc-server:
+        condition: service_healthy
+    networks:
+      - plc-net
+    build:
+      context: "../../dmz-demo"
+      dockerfile_inline: |
+        FROM python:3.14-slim
+        WORKDIR /app
+        RUN apt update && apt install git -y
+        COPY src/requirements.txt .
+        RUN pip install --no-cache-dir -r requirements.txt
+        COPY src/ /app/
+        ENTRYPOINT ["python3"]
+        CMD ["-m" , "cli.main" , "start-forwarder"]
+
+
 networks:
   plc-net:
     name: plc-net

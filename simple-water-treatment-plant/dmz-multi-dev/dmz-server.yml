@@ -1,0 +1,11 @@
+services:
+  dmz_redis:
+    image: redis:alpine
+    container_name: "dmz_redis"
+    hostname: "dmz_redis"
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

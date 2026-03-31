@@ -1,0 +1,23 @@
+services:
+  valve-server:
+    container_name: "valve-server"
+    hostname: "valve-server"
+    image: node-server:latest
+    pull_policy: build
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4840 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: on-failure:5
+    build:
+      context: ${REF}opcua/server/nodejs-node-opcua/latest
+      args:
+        NODESET_MODEL: "Valve.NodeSet2.xml"
+      additional_contexts:
+        container_context: ${REF}opcua/server/nodejs-node-opcua/latest
+        nodeset_context: ${META}/demo-nodeset2
+        companion_context: ${META}/companion-specifications
+        configuration_context: ${META}/server-configuration
+    ports:
+      - "4841:4840"

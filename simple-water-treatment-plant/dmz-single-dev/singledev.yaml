@@ -104,6 +104,7 @@ services:
       timeout: 5s
       retries: 3
     build:
+    
       context: ${REF}opcua/server/nodejs-node-opcua/latest
       args:
         NODESET_MODEL: "PLC.NodeSet2.xml"
