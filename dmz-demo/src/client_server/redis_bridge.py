@@ -4,6 +4,8 @@ import typer
 
 class RedisBridge:
     def __init__(self, REDIS_HOST, REDIS_PORT):
+        self.host = REDIS_HOST
+        self.port = REDIS_PORT
         self.r = redis.Redis(
             host=REDIS_HOST,
             port=REDIS_PORT,
@@ -14,7 +16,7 @@ class RedisBridge:
         )
 
     async def connect(self):
-        typer.echo("try connecting to REDIS server")
+        typer.echo(f"try connecting to REDIS server {self.host}:{self.port}")
         await self.r.ping()
         typer.echo("Successfully connected to REDIS server")
 
