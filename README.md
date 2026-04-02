@@ -21,6 +21,9 @@ Its main features are its modularity and extensibility through packaging testbed
 
 This project was created so collect sources for testbed components. We needed quickly adaptable and configurable testbeds to perform specific penetration tests against different components and implementations. As we realized, there are few open-source projects available to draw from, so we decided to make ours available to the public and use the community to extend it to any domain they see fit.
 
+The core project currently contains two demos for testing different device configurations. The full demo configurations are found in `simple-water-treatment-plant/...` and can all be run using `docker compose`. The dmz demo uses additional devices to forward data using a DMZ service between an IT and an OT domain. Demo files and forward services, as well as an additional dashboard, are hosted in the *-demo folders and can be customized. 
+  
+
 ## Getting Started
 
 ### Prerequisites
@@ -38,7 +41,7 @@ After cloning the repository, you can inspect and modify the compose files. The 
 ```bash
 /setup-name
   README - contains explanation of setup
-  compose.yml
+  compose.yaml
   # config files or any other sources needed
 ```
 
