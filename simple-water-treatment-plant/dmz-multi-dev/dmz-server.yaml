@@ -1,6 +1,7 @@
 services:
   dmz_redis:
     image: redis:alpine
+    restart: always
     container_name: "dmz_redis"
     hostname: "dmz_redis"
     ports: ["6379:6379"]

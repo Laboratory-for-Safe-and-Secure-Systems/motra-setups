@@ -17,6 +17,7 @@ services:
     restart: always
   it_server:
     image: it_server
+    restart: on-failure:5
     pull_policy: build
     ports:
       - "4840:4840"

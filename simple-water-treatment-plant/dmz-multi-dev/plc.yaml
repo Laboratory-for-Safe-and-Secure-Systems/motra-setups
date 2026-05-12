@@ -66,6 +66,7 @@ services:
 
   forwarder:
     image: ot_forwarder
+    restart: on-failure:5
     pull_policy: build
     depends_on:
       plc-server:
